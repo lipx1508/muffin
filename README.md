@@ -4,7 +4,7 @@ Cross-platform, 2D graphics API for C++11.
 ## QA
 ### Why?
 I created muffin mostly for an alternative on making graphics without the low-level scary things.\
-No, I don't made this as a replacement for any graphical API's out there. I made this for fun and as a personal utility, and then decided to share it.
+And no, I don't made this as a replacement for any graphical API's out there. I made this for fun and as a personal utility, and then decided to share it.
 
 ### Is it hard?
 Actually no! Mostly of the stuff here can be done by a newbie. For example, drawing a red rectangle literally takes 2 lines, see:
