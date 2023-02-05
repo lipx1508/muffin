@@ -1,2 +1,2 @@
 # muffin
-2D cross-platform API for C++11
+Cross-platform, 2D graphics API for C++11.
