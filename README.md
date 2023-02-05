@@ -33,4 +33,4 @@ No. I don't have money for a developer license or something.
 Currently not, planning on porting it actually.
 
 ## License
-muffin is licensed by Apache 2.0, so it supports free commercial use. For more info see [LICENSE.md](LICENSE.MD)
+muffin is licensed by Apache 2.0, so it supports free commercial use. For more info see [the license file](LICENSE).
