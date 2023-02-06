@@ -13,11 +13,20 @@ muffin::graphics::setcolor();              // Sets the current color as red
 muffin::graphics::drawrect(5, 10, 50, 60); // Draws a rectangle at the position x = 5, y = 10, and with the size of w = 50, h = 60
 ```
 
+### Does it support consoles?
+No. I don't have money for a developer license or something.
+
+### Does it support C?
+Currently not, planning on porting it actually.
+
 ### How do I start?
 See ["Compiling"](#Compiling).
 
+## Dependencies
+* SDL2
+
 ## Compiling
-To build it, simply run:
+Be ensure that you have all the [dependencies](#Dependencies), and then to build it, simply run:
 ```sh
 make all
 ```
@@ -25,12 +34,6 @@ And if you are in a linux based system, you can install automatically using this
 ```sh
 make install
 ```
-
-### Does it support consoles?
-No. I don't have money for a developer license or something.
-
-### Does it support C?
-Currently not, planning on porting it actually.
 
 ## License
 muffin is licensed by Apache 2.0, so it supports free commercial use. For more info see [the license file](LICENSE).
