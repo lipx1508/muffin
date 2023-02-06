@@ -1,5 +1,6 @@
 # muffin
 Cross-platform, 2D graphics API for C++11.
+Example of it running: https://youtu.be/R5oBCfQPgrg
 
 ## QA
 ### Why?
