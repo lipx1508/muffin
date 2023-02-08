@@ -19,12 +19,14 @@ namespace muffin {
         SDL_Renderer * renderer;
         unsigned char backend;
 
-        vector<SDL_Texture *> textures;
-        vector<TTF_Font    *> fonts;
-        vector<Mix_Chunk   *> chunks;
-        vector<Mix_Music   *> musics;
+        vector<SDL_Texture  *> textures;
+        vector<SDL_Joystick *> joysticks(8);
+        vector<TTF_Font     *> fonts;
+        vector<Mix_Chunk    *> chunks;
+        vector<Mix_Music    *> musics;
 
-        set<SDL_Keycode>      keyevents;
+        set<SDL_Keycode>       keyevents;
+        set<unsigned int>      joystickevents;
     };
 };
 
@@ -65,6 +67,7 @@ bool muffin::poll() {
     // Polls events
     bool quit = true;
     runtime::keyevents.clear();
+    runtime::joystickevents.clear();
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -76,6 +79,9 @@ bool muffin::poll() {
             case SDL_KEYDOWN: {
                 runtime::keyevents.insert(event.key.keysym.sym);
                 break;
+            } 
+            case SDL_JOYBUTTONDOWN: {
+                runtime::joystickevents.insert(event.jbutton.button);
             }
         }
     }
@@ -98,6 +104,28 @@ unsigned int muffin::ticksms() {
 }
 
 // Input
+bool muffin::input::loadjoystick(unsigned int id) {
+    // Loads a joystick and returns if it's connected
+    if (SDL_NumJoysticks() > (int)id) {
+        runtime::joysticks[id] = SDL_JoystickOpen(id);
+        if (runtime::joysticks[id] == NULL) trace::error(SDL_GetError());
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool muffin::input::joystick(unsigned int port, unsigned int id) {
+    // Joysticks buttons
+    return SDL_JoystickGetButton(runtime::joysticks[port], id - 1);
+}
+
+bool muffin::input::joystickevent(unsigned int id) {
+    // Joystick buttons (but using events)
+    return runtime::joystickevents.count(id - 1);
+}
+
 bool muffin::input::keyboard(unsigned int id) {
     // Gets keypresses
     auto k = SDL_GetKeyboardState(NULL);
@@ -221,10 +249,34 @@ void muffin::audio::playaudio(unsigned int id) {
         trace::error(Mix_GetError());
 }
 
-void muffin::audio::playmusic(unsigned int id) {
+void muffin::audio::playmusic(unsigned int id, bool loop) {
     // Plays audio
-    if (Mix_PlayMusic(runtime::musics[id], -1) == -1) 
+    if (Mix_PlayMusic(runtime::musics[id], loop - 1) == -1) 
         trace::error(Mix_GetError());
+}
+
+void muffin::audio::pauseaudio() {
+    Mix_Pause(-1);
+}
+
+void muffin::audio::pausemusic() {
+    Mix_PauseMusic();
+}
+
+void muffin::audio::resumeaudio() {
+    Mix_Resume(-1);
+}
+
+void muffin::audio::resumemusic() {
+    Mix_ResumeMusic();
+}
+
+void muffin::audio::volumeaudio(unsigned char volume) {
+    Mix_Volume(-1, ((volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume));
+}
+
+void muffin::audio::volumemusic(unsigned char volume) {
+    Mix_VolumeMusic(((volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume));
 }
 
 void muffin::trace::error(const char * what) {
