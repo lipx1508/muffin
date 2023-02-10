@@ -8,12 +8,12 @@
 #include <SDL2/SDL_mixer.h>
 
 // C++ STL
-#include <iostream>
 #include <vector>
 #include <set>
 using namespace std;
 
 namespace muffin {
+    /// \private
     namespace runtime {
         SDL_Window   * window;
         SDL_Renderer * renderer;
@@ -31,14 +31,14 @@ namespace muffin {
 };
 
 // Main
-void muffin::init(unsigned char backend) {
+void muffin::init(unsigned char backend, const char * title, unsigned int w, unsigned int h, bool fullscreen) {
     // Initializes everything
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) throw SDL_GetError();
     if (TTF_Init()                    != 0) throw TTF_GetError();
 
     if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096) == -1) throw Mix_GetError();
 
-    runtime::window = SDL_CreateWindow("muffin window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
+    runtime::window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (runtime::window == NULL) throw SDL_GetError();
 
     // Inits according to backend
@@ -47,19 +47,6 @@ void muffin::init(unsigned char backend) {
         runtime::renderer = SDL_CreateRenderer(runtime::window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
         SDL_SetRenderDrawBlendMode(runtime::renderer, SDL_BLENDMODE_BLEND);
         if (runtime::renderer == NULL) throw SDL_GetError();
-    }
-}
-
-void muffin::config(const char * title, unsigned int w, unsigned int h, bool fullscreen) {
-    // Initializes everything
-    SDL_SetWindowTitle(runtime::window, title);
-    SDL_SetWindowSize(runtime::window, w, h);
-    SDL_SetWindowPosition(runtime::window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowFullscreen(runtime::window, fullscreen);
-
-    if (runtime::backend != MUFFIN_BACKEND_GL2) {
-        // Updates renderer
-        SDL_RenderPresent(runtime::renderer);
     }
 }
 
