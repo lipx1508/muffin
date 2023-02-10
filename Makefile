@@ -3,7 +3,6 @@ SOURCE   := $(wildcard src/*.cpp)
 OUTPUT   := $(patsubst src/%.cpp, bin/%.o, $(SOURCE))
 LIBS     := -lm -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 TARGET   := libmuffin.so
-DOCS     := docs/ docs/_build/html
 
 .PHONY: all link clean docs
 
