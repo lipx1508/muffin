@@ -3,8 +3,7 @@
 #include <math.h>
 
 int main(int argc, char * argv[]) {
-    muffin::init(MUFFIN_BACKEND_SDL2);
-    muffin::config("muffin example", 800, 800);
+    muffin::init(MUFFIN_BACKEND_SDL2, "muffin example", 800, 800);
     muffin::graphics::setscale(4);
 
     while (muffin::poll()) {
