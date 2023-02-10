@@ -11,7 +11,7 @@ And no, I don't made this as a replacement for any graphical API's out there. I 
 Actually no! Mostly of the stuff here can be done by a newbie. For example, drawing a red rectangle literally takes 2 lines, see:
 ```cpp
 muffin::graphics::setcolor(255, 0, 0, 255); // Sets the current color as opaque red
-muffin::graphics::drawrect(5, 10, 50, 60);  // Draws a rectangle at the position x = 5, y = 10, and with the size of w = 50, h = 60
+muffin::graphics::drawrect(5, 10, 50, 60);  // Draws a rectangle at the position x = 5, y = 10, and with the size of 50x60
 ```
 
 ### Does it support consoles?
@@ -25,6 +25,7 @@ See ["Compiling"](#Compiling).
 
 ## Dependencies
 * SDL2
+* Doxygen (optional, only used for documentation)
 
 ## Compiling
 Be ensure that you have all the [dependencies](#Dependencies), and then to build it, simply run:
