@@ -1,13 +1,32 @@
+/*! \mainpage The libmuffin API reference
+ *
+ * \section intro_sec Quick and short intro
+ * Thank you for using muffin! Like, really really thanks. :D
+ * 
+ * For more information on the library, please see https://github.com/lipx1508/muffin.
+ */
+
 #ifndef MUFFIN_H
 #define MUFFIN_H
 
+/*!
+ * @defgroup MUFFIN Core macros
+ *
+ * @{
+ */
 #define MUFFIN_MAKEVERSION(major, minor, patch) (major * 100 + minor * 10 + patch)
 
 #define MUFFIN_MAJOR   1
-#define MUFFIN_MINOR   3
+#define MUFFIN_MINOR   4
 #define MUFFIN_PATCH   0
 #define MUFFIN_VERSION MUFFIN_MAKEVERSION(MUFFIN_MAJOR, MUFFIN_MINOR, MUFFIN_PATCH)
+/*! @} */
 
+/*!
+ * @defgroup MUFFIN_KEY Keyboard macros
+ *
+ * @{
+ */
 #define MUFFIN_KEY_UNKNOWN              0
 #define MUFFIN_KEY_A                    4
 #define MUFFIN_KEY_B                    5
@@ -250,19 +269,55 @@
 #define MUFFIN_KEY_KBDILLUMUP           280
 #define MUFFIN_KEY_EJECT                281
 #define MUFFIN_KEY_SLEEP                282
+/*! @} */
 
+/*!
+ * @defgroup MUFFIN_BUTTON Mouse button macros
+ *
+ * @{
+ */
 #define MUFFIN_BUTTON_LEFT              1
 #define MUFFIN_BUTTON_MIDDLE            2
 #define MUFFIN_BUTTON_RIGHT             3
+/*! @} */
+
+/*!
+ * @defgroup MUFFIN_FLAGS Flag macros
+ *
+ * @{
+ */
+#define MUFFIN_FLAGS_ACCELERATED        1 << 0
+#define MUFFIN_FLAGS_SOFTWARE           1 << 1
+#define MUFFIN_FLAGS_VSYNC              1 << 2
+#define MUFFIN_FLAGS_FULLSCREEN         1 << 3
+#define MUFFIN_FLAGS_FULLSCREEN_DESKTOP 1 << 4
+#define MUFFIN_FLAGS_BORDERLESS         1 << 5
+#define MUFFIN_FLAGS_RESIZABLE          1 << 6
+#define MUFFIN_FLAGS_MINIMIZED          1 << 7
+#define MUFFIN_FLAGS_MAXIMIZED          1 << 8
+#define MUFFIN_FLAGS_HIGHDPI            1 << 9
+/*! @} */
+
+/*!
+ * @defgroup MUFFIN_QUALITY Rendering quality macros
+ *
+ * @{
+ */
+#define MUFFIN_QUALITY_NEAREST          0
+#define MUFFIN_QUALITY_LINEAR           1
+#define MUFFIN_QUALITY_ANISOTROPIC      2
+/*! @} */
 
 //! All the muffin API
 namespace muffin {
     //! Inits muffin backends
-    void init(const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, bool fullscreen = false);
+    void init(const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, unsigned int flags = 0);
     //! Polls and updates event handling
     bool poll();
     //! Updates the internal backend
     void update();
+    //! Halts for a certain amount of time, may cause crashes if used during loops
+    void delay(unsigned int time);
     //! Ticks since the backend initialization
     unsigned int ticksms();
     //! Clears the entire muffin internal state
@@ -290,6 +345,10 @@ namespace muffin {
         int mousex();
         //! Gets mouse position y
         int mousey();
+        //! Sets the mouse capture
+        void mousecapture(bool capture);
+        //! Sets the cursor visibility
+        void mousevisibility(bool toggle);
     };
     
     //! Graphics (drawing shapes, loading images, etc)
@@ -298,6 +357,8 @@ namespace muffin {
         unsigned int loadimage(const char * path);
         //! Loads a font internally, and then returns a unique ID, which can be used for drawing later
         unsigned int loadfont(const char * path, unsigned int size);
+        //! Loads a canvas internally, and then returns a unique ID, which can be used for drawing later
+        unsigned int loadcanvas(unsigned int w, unsigned int h);
         
         //! Sets the current drawing color to be used
         void setcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
@@ -305,6 +366,10 @@ namespace muffin {
         void setcolorhex(unsigned long hex);
         //! Sets the render scale
         void setscale(unsigned int size);
+        //! Sets the current rendering quality
+        void setquality(unsigned int quality);
+        //! Sets the current drawing canvas, 0 or NULL is the default
+        void setcanvas(unsigned int canvas);
         //! Clears the screen and the internal buffers
         void clear();
         
@@ -320,6 +385,8 @@ namespace muffin {
         void drawimage(unsigned int id, int x, int y, int w, int h, bool flip = false, int sx = 0, int sy = 0, int sw = 0, int sh = 0);
         //! Draws a text on the screen using the specified font ID and current color
         void drawtext(unsigned int id, const char * text, int x, int y, double size, unsigned int wrap = 0);
+        //! Draws a canvas on the screen
+        void drawcanvas(unsigned int id, int x, int y, int w, int h);
     };
 
     //! Audio (loading and playing music, setting music volume, pausing music, etc)
@@ -354,6 +421,17 @@ namespace muffin {
     namespace data {
         //! Loads a data file
         void loaddata(unsigned char * data, unsigned int size);
+    };
+
+    //! System (more advanced, used for getting system information)
+    namespace system {
+        //! Returns the current clipboard data and sets it to a new one
+        const char * clipboard(const char * data);
+
+        //! Returns the a path suitable for saving the application data
+        const char * prefpath(const char * org, const char * app);
+        //! Returns the application base path
+        const char * basepath();
     };
 
     //! Tracing (throws errors with correct handling)
