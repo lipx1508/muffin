@@ -296,6 +296,13 @@ void muffin::graphics::drawtext(unsigned int id, const char * text, int x, int y
     SDL_DestroyTexture(texture);
 }
 
+void muffin::graphics::drawcanvas(unsigned int id, int x, int y, int w, int h) {
+    // Draws an image
+    SDL_Rect dst = { x, y, w, h };
+
+    SDL_RenderCopy(runtime::renderer, runtime::textures[id], NULL, &dst);
+}
+
 // Audio
 unsigned int muffin::audio::loadaudio(const char * path) {
     // Loads an audio chunk and returns it's ID
