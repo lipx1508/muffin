@@ -382,7 +382,7 @@ namespace muffin {
         //! Draws a line on the screen using the current color
         void drawline(int x1, int y1, int x2, int y2);
         //! Draws a image on the screen using the specified ID
-        void drawimage(unsigned int id, int x, int y, int w, int h, bool flip = false, int sx = 0, int sy = 0, int sw = 0, int sh = 0);
+        void drawimage(unsigned int id, int x, int y, int w, int h, bool flip = false, double rotation = 0, int sx = 0, int sy = 0, int sw = 0, int sh = 0);
         //! Draws a text on the screen using the specified font ID and current color
         void drawtext(unsigned int id, const char * text, int x, int y, double size, unsigned int wrap = 0);
         //! Draws a canvas on the screen
