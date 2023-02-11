@@ -1,11 +1,7 @@
-#ifdef _WIN32
-#include <muffin.hpp>
-#else
 #include <muffin/muffin.hpp>
-#endif
 
 int main(int argc, char * argv[]) {
-    muffin::init("muffin | 1 - Hello world!", 800, 800);
+    muffin::init("muffin | 1 - Hello world!", 800, 800, MUFFIN_FLAGS_VSYNC);
     muffin::graphics::setscale(4);
 
     unsigned int font = muffin::graphics::loadfont("mini.ttf", 16);
