@@ -266,7 +266,7 @@ void muffin::graphics::drawline(int x1, int y1, int x2, int y2) {
     SDL_RenderDrawLine(runtime::renderer, x1, y1, x2, y2);
 }
 
-void muffin::graphics::drawimage(unsigned int id, int x, int y, int w, int h, bool flip, int sx, int sy, int sw, int sh) {
+void muffin::graphics::drawimage(unsigned int id, int x, int y, int w, int h, bool flip, double rotation, int sx, int sy, int sw, int sh) {
     // Draws an image
     SDL_Rect dst = { x, y, w, h }, dst2;
 
@@ -274,7 +274,7 @@ void muffin::graphics::drawimage(unsigned int id, int x, int y, int w, int h, bo
         SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], NULL, &dst, 0, NULL, (SDL_RendererFlip)flip);
     } else {
         dst2 = { sx, sy, sw, sh };
-        SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], &dst2, &dst, 0, NULL, (SDL_RendererFlip)flip);
+        SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], &dst2, &dst, rotation, NULL, (SDL_RendererFlip)flip);
     }
 }
 
