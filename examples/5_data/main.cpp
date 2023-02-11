@@ -1,13 +1,9 @@
-#ifdef _WIN32
-#include <muffin.hpp>
-#else
 #include <muffin/muffin.hpp>
-#endif
 
 #include <stdio.h>
 
 int main(int argc, char * argv[]) {
-    muffin::init("muffin | 5 - Data", 800, 800);
+    muffin::init("muffin | 5 - Data", 800, 800, MUFFIN_FLAGS_VSYNC);
     muffin::graphics::setscale(4);
 
     FILE * f = fopen("hi.png", "rb");
