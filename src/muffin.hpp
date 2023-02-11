@@ -4,7 +4,7 @@
 #define MUFFIN_MAKEVERSION(major, minor, patch) (major * 100 + minor * 10 + patch)
 
 #define MUFFIN_MAJOR   1
-#define MUFFIN_MINOR   2
+#define MUFFIN_MINOR   3
 #define MUFFIN_PATCH   0
 #define MUFFIN_VERSION MUFFIN_MAKEVERSION(MUFFIN_MAJOR, MUFFIN_MINOR, MUFFIN_PATCH)
 
@@ -251,19 +251,22 @@
 #define MUFFIN_KEY_EJECT                281
 #define MUFFIN_KEY_SLEEP                282
 
-#define MUFFIN_BACKEND_SDL2             0
-#define MUFFIN_BACKEND_GL2              1
+#define MUFFIN_BUTTON_LEFT              1
+#define MUFFIN_BUTTON_MIDDLE            2
+#define MUFFIN_BUTTON_RIGHT             3
 
 //! All the muffin API
 namespace muffin {
     //! Inits muffin backends
-    void init(unsigned char backend, const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, bool fullscreen = false);
+    void init(const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, bool fullscreen = false);
     //! Polls and updates event handling
     bool poll();
     //! Updates the internal backend
     void update();
     //! Ticks since the backend initialization
     unsigned int ticksms();
+    //! Clears the entire muffin internal state
+    void close();
     
     //! Input (for keyboards, joysticks, etc)
     namespace input {
@@ -271,13 +274,22 @@ namespace muffin {
         bool loadjoystick(unsigned int id);
         //! Gets a joystick input from a specific port
         bool joystick(unsigned int port, unsigned int id);
-        //! Gets a joystick input from a specific port using events
+        //! Gets a joystick axis state from a specific port
+        bool joystickaxis(unsigned int port, unsigned int id);
+        //! Gets a joystick input using events
         bool joystickevent(unsigned int id);
 
         //! Gets keyboard input
         bool keyboard(unsigned int id);
         //! Gets keyboard input using events
         bool keyboardevent(unsigned int id);
+
+        //! Gets mouse input
+        bool mouse(unsigned int id);
+        //! Gets mouse position x
+        int mousex();
+        //! Gets mouse position y
+        int mousey();
     };
     
     //! Graphics (drawing shapes, loading images, etc)
@@ -336,6 +348,12 @@ namespace muffin {
         void volumeaudio(unsigned char volume);
         //! Sets all the musics volume to the specfied value (max. 128, anything higher than this will be set down to 128 again)
         void volumemusic(unsigned char volume);
+    };
+
+    //! Data (more advanced, used for loading data from memory instead of disk)
+    namespace data {
+        //! Loads a data file
+        void loaddata(unsigned char * data, unsigned int size);
     };
 
     //! Tracing (throws errors with correct handling)
