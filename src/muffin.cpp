@@ -8,6 +8,7 @@
 #include <SDL2/SDL_mixer.h>
 
 // C++ STL
+#include <iostream>
 #include <vector>
 #include <set>
 using namespace std;
@@ -17,10 +18,10 @@ namespace muffin {
     namespace runtime {
         SDL_Window   * window;
         SDL_Renderer * renderer;
-        unsigned char backend;
+        SDL_RWops    * data;
 
         vector<SDL_Texture  *> textures;
-        vector<SDL_Joystick *> joysticks(8);
+        vector<SDL_Joystick *> joysticks;
         vector<TTF_Font     *> fonts;
         vector<Mix_Chunk    *> chunks;
         vector<Mix_Music    *> musics;
@@ -31,7 +32,10 @@ namespace muffin {
 };
 
 // Main
-void muffin::init(unsigned char backend, const char * title, unsigned int w, unsigned int h, bool fullscreen) {
+void muffin::init(const char * title, unsigned int w, unsigned int h, bool fullscreen) {
+    // Basic core handling
+    atexit(muffin::close);
+
     // Initializes everything
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) throw SDL_GetError();
     if (TTF_Init()                    != 0) throw TTF_GetError();
@@ -41,13 +45,10 @@ void muffin::init(unsigned char backend, const char * title, unsigned int w, uns
     runtime::window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (runtime::window == NULL) throw SDL_GetError();
 
-    // Inits according to backend
-    runtime::backend = backend;
-    if (backend != MUFFIN_BACKEND_GL2) {
-        runtime::renderer = SDL_CreateRenderer(runtime::window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
-        SDL_SetRenderDrawBlendMode(runtime::renderer, SDL_BLENDMODE_BLEND);
-        if (runtime::renderer == NULL) throw SDL_GetError();
-    }
+    runtime::renderer = SDL_CreateRenderer(runtime::window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
+    SDL_SetRenderDrawBlendMode(runtime::renderer, SDL_BLENDMODE_BLEND);
+    SDL_RenderSetLogicalSize(runtime::renderer, w, h);
+    if (runtime::renderer == NULL) throw SDL_GetError();
 }
 
 bool muffin::poll() {
@@ -80,20 +81,29 @@ void muffin::update() {
     // Updates mixer
     Mix_PlayingMusic();
 
-    if (runtime::backend != MUFFIN_BACKEND_GL2) {
-        // Updates renderer
-        SDL_RenderPresent(runtime::renderer);
-    }
+    // Updates renderer
+    SDL_RenderPresent(runtime::renderer);
 }
 
 unsigned int muffin::ticksms() {
     return SDL_GetTicks();
 }
 
+void muffin::close() {
+    if (runtime::renderer != NULL) SDL_DestroyRenderer(runtime::renderer);
+    if (runtime::window   != NULL) SDL_DestroyWindow(runtime::window);
+
+    // Quits
+    TTF_Quit();
+    Mix_Quit();
+    SDL_Quit();
+}
+
 // Input
 bool muffin::input::loadjoystick(unsigned int id) {
     // Loads a joystick and returns if it's connected
     if (SDL_NumJoysticks() > (int)id) {
+        if (runtime::joysticks.size() < id) runtime::joysticks.resize(id);
         runtime::joysticks[id] = SDL_JoystickOpen(id);
         if (runtime::joysticks[id] == NULL) trace::error(SDL_GetError());
     } else {
@@ -106,6 +116,11 @@ bool muffin::input::loadjoystick(unsigned int id) {
 bool muffin::input::joystick(unsigned int port, unsigned int id) {
     // Joysticks buttons
     return SDL_JoystickGetButton(runtime::joysticks[port], id - 1);
+}
+
+bool muffin::input::joystickaxis(unsigned int port, unsigned int id) {
+    // Joysticks axis
+    return SDL_JoystickGetAxis(runtime::joysticks[port], id - 1);
 }
 
 bool muffin::input::joystickevent(unsigned int id) {
@@ -124,21 +139,40 @@ bool muffin::input::keyboardevent(unsigned int id) {
     return runtime::keyevents.count(SDL_GetKeyFromScancode((SDL_Scancode)id));
 }
 
+bool muffin::input::mouse(unsigned int id) {
+    // Gets mouse input
+    return (SDL_GetMouseState(NULL, NULL) == id);
+}
+
+int muffin::input::mousex() {
+    // Gets mouse position x
+    int x;
+    SDL_GetMouseState(&x, NULL);
+    return x;
+}
+
+int muffin::input::mousey() {
+    // Gets mouse position x
+    int y;
+    SDL_GetMouseState(NULL, &y);
+    return y;
+}
+
 // Graphics
 unsigned int muffin::graphics::loadimage(const char * path) {
     // Loads an image and returns it's ID (kinda like OpenGL)
-    SDL_Texture * texture = IMG_LoadTexture(runtime::renderer, path);
-    if (texture == NULL) trace::error(SDL_GetError());
-
-    runtime::textures.push_back(texture);
+    if (path == NULL) runtime::textures.push_back(IMG_LoadTexture_RW(runtime::renderer, runtime::data, false));
+    else              runtime::textures.push_back(IMG_LoadTexture(runtime::renderer, path));
+    if (runtime::textures.back() == NULL) trace::error(SDL_GetError());
 
     return runtime::textures.size() - 1;
 }
 
 unsigned int muffin::graphics::loadfont(const char * path, unsigned int size) {
     // Loads an font and returns it's ID
-    TTF_Font * font = TTF_OpenFont(path, size);
-    runtime::fonts.push_back(font);
+    if (path == NULL) runtime::fonts.push_back(TTF_OpenFontRW(runtime::data, false, size));
+    else              runtime::fonts.push_back(TTF_OpenFont(path, size));
+    if (runtime::fonts.back() == NULL) trace::error(TTF_GetError());
 
     return runtime::fonts.size() - 1;
 }
@@ -218,14 +252,18 @@ void muffin::graphics::drawtext(unsigned int id, const char * text, int x, int y
 // Audio
 unsigned int muffin::audio::loadaudio(const char * path) {
     // Loads an audio chunk and returns it's ID
-    runtime::chunks.push_back(Mix_LoadWAV(path));
+    if (path == NULL) runtime::chunks.push_back(Mix_LoadWAV_RW(runtime::data, false));
+    else              runtime::chunks.push_back(Mix_LoadWAV(path));
+    if (runtime::chunks.back() == NULL) trace::error(Mix_GetError());
 
     return runtime::chunks.size() - 1;
 }
 
 unsigned int muffin::audio::loadmusic(const char * path) {
     // Loads an audio chunk and returns it's ID
-    runtime::musics.push_back(Mix_LoadMUS(path));
+    if (path == NULL) runtime::musics.push_back(Mix_LoadMUS_RW(runtime::data, false));
+    else              runtime::musics.push_back(Mix_LoadMUS(path));
+    if (runtime::musics.back() == NULL) trace::error(Mix_GetError());
 
     return runtime::musics.size() - 1;
 }
@@ -238,7 +276,7 @@ void muffin::audio::playaudio(unsigned int id) {
 
 void muffin::audio::playmusic(unsigned int id, bool loop) {
     // Plays audio
-    if (Mix_PlayMusic(runtime::musics[id], loop - 1) == -1) 
+    if (Mix_PlayMusic(runtime::musics[id], (loop ? -1 : 0)) == -1) 
         trace::error(Mix_GetError());
 }
 
@@ -266,7 +304,16 @@ void muffin::audio::volumemusic(unsigned char volume) {
     Mix_VolumeMusic(((volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume));
 }
 
+// Data
+void muffin::data::loaddata(unsigned char * data, unsigned int size) {
+    if (runtime::data != NULL) SDL_RWclose(runtime::data);
+    runtime::data = SDL_RWFromMem(data, size);
+}
+
+// Trace
 void muffin::trace::error(const char * what) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "muffin framework error", what, runtime::window);
-    throw what;
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "libmuffin error", what, NULL);
+    cerr << "libmuffin error: " << what << '\n';
+
+    exit(-1);
 }
