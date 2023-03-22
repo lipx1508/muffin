@@ -29,11 +29,14 @@ namespace muffin {
 
         set<SDL_Keycode>       keyevents;
         set<unsigned int>      joystickevents;
+        set<unsigned char>     mousebuttons;
+        SDL_MouseWheelEvent    mousewheel;
+        char *                 textinput;
     };
 };
 
 // Main
-void muffin::init(const char * title, unsigned int w, unsigned int h, unsigned int flags) {
+void muffin::init(const char * title, unsigned int w, unsigned int h, const char * icon, unsigned int flags) {
     // Basic core handling
     atexit(muffin::close);
 
@@ -54,14 +57,18 @@ void muffin::init(const char * title, unsigned int w, unsigned int h, unsigned i
                       ((flags & MUFFIN_FLAGS_MAXIMIZED)          ? SDL_WINDOW_MAXIMIZED          : 0) | 
                       ((flags & MUFFIN_FLAGS_HIGHDPI)            ? SDL_WINDOW_ALLOW_HIGHDPI      : 0);
 
-    runtime::window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, fw);
-    if (runtime::window == NULL) throw SDL_GetError();
-    runtime::renderer = SDL_CreateRenderer(runtime::window, -1, fr);
-    if (runtime::renderer == NULL) throw SDL_GetError();
+    runtime::window   = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, fw);
+    runtime::renderer = SDL_CreateRenderer(runtime::window, -1, fr | SDL_RENDERER_TARGETTEXTURE);
+    if (!runtime::renderer or !runtime::window) trace::error(SDL_GetError());
 
     // Configures
     SDL_SetRenderDrawBlendMode(runtime::renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderSetLogicalSize(runtime::renderer, w, h);
+    if (icon) {
+        SDL_Surface * surface = IMG_Load(icon);
+        SDL_SetWindowIcon(runtime::window, surface);
+        SDL_FreeSurface(surface);
+    }
 }
 
 bool muffin::poll() {
@@ -69,6 +76,7 @@ bool muffin::poll() {
     bool quit = true;
     runtime::keyevents.clear();
     runtime::joystickevents.clear();
+    runtime::mousebuttons.clear();
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -77,12 +85,25 @@ bool muffin::poll() {
                 quit = false;
                 break;
             }
+            case SDL_MOUSEWHEEL: {
+                runtime::mousewheel = event.wheel;
+                break;
+            }
+            case SDL_JOYBUTTONDOWN: {
+                runtime::joystickevents.insert(event.jbutton.button);
+                break;
+            }
             case SDL_KEYDOWN: {
                 runtime::keyevents.insert(event.key.keysym.sym);
                 break;
-            } 
-            case SDL_JOYBUTTONDOWN: {
-                runtime::joystickevents.insert(event.jbutton.button);
+            }
+            case SDL_MOUSEBUTTONDOWN: {
+                runtime::joystickevents.insert(event.button.button);
+                break;
+            }
+            case SDL_TEXTINPUT: {
+                if (event.text.text) runtime::textinput = event.text.text;
+                break;
             }
         }
     }
@@ -158,7 +179,12 @@ bool muffin::input::keyboardevent(unsigned int id) {
 
 bool muffin::input::mouse(unsigned int id) {
     // Gets mouse input
-    return (SDL_GetMouseState(NULL, NULL) == id);
+    return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(id));
+}
+
+bool muffin::input::mouseevent(unsigned int id) {
+    // Gets mouse input (but using events)
+    return runtime::mousebuttons.count(SDL_BUTTON(id));
 }
 
 int muffin::input::mousex() {
@@ -166,6 +192,16 @@ int muffin::input::mousex() {
     int x;
     SDL_GetMouseState(&x, NULL);
     return x;
+}
+
+int muffin::input::mousewheely() {
+    // Gets mouse wheel position x
+    return runtime::mousewheel.y;
+}
+
+int muffin::input::mousewheelx() {
+    // Gets mouse wheel position x
+    return runtime::mousewheel.x;
 }
 
 int muffin::input::mousey() {
@@ -183,6 +219,22 @@ void muffin::input::mousecapture(bool capture) {
 void muffin::input::mousevisibility(bool toggle) {
     // Sets mouse capture
     if (SDL_ShowCursor(toggle) == -1) trace::error(SDL_GetError());
+}
+
+void muffin::input::textinput(bool toggle) {
+    // Sets the text input state
+    if (toggle) SDL_StartTextInput();
+    else        SDL_StopTextInput();
+}
+
+bool muffin::input::textinputactive() {
+    // Gets the text input state
+    return SDL_IsTextInputActive();
+}
+
+const char * muffin::input::textinputtext() {
+    // Gets text input
+    return runtime::textinput;
 }
 
 // Graphics
@@ -222,7 +274,24 @@ void muffin::graphics::setcolorhex(unsigned long hex) {
     SDL_SetRenderDrawColor(runtime::renderer, hex >> 24, hex >> 16, hex >> 8, hex);
 }
 
-void muffin::graphics::setquality(unsigned int quality) {
+void muffin::graphics::setcolormod(unsigned int id, unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+    // Sets current color mod
+    SDL_SetTextureColorMod(runtime::textures[id], r, g, b);
+    SDL_SetTextureAlphaMod(runtime::textures[id], a);
+}
+
+void muffin::graphics::setcolormodhex(unsigned int id, unsigned long hex) {
+    // Sets current color mod
+    SDL_SetTextureColorMod(runtime::textures[id], hex >> 24, hex >> 16, hex >> 8);
+    SDL_SetTextureAlphaMod(runtime::textures[id], hex);
+}
+
+void muffin::graphics::setblend(unsigned int id, unsigned char mode) {
+    // Sets current blending mode
+    SDL_SetTextureBlendMode(runtime::textures[id], (SDL_BlendMode)mode);
+}
+
+void muffin::graphics::setquality(unsigned char quality) {
     // Sets current render quality
     SDL_SetHint("SDL_HINT_RENDER_SCALE_QUALITY", ((quality == MUFFIN_QUALITY_NEAREST)     ? "0" : 
                                                  ((quality == MUFFIN_QUALITY_LINEAR)      ? "1" : 
@@ -271,14 +340,14 @@ void muffin::graphics::drawimage(unsigned int id, int x, int y, int w, int h, bo
     SDL_Rect dst = { x, y, w, h }, dst2;
 
     if (sw <= 0 && sh <= 0) {
-        SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], NULL, &dst, 0, NULL, (SDL_RendererFlip)flip);
+        SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], NULL, &dst, rotation, NULL, (SDL_RendererFlip)flip);
     } else {
         dst2 = { sx, sy, sw, sh };
         SDL_RenderCopyEx(runtime::renderer, runtime::textures[id], &dst2, &dst, rotation, NULL, (SDL_RendererFlip)flip);
     }
 }
 
-void muffin::graphics::drawtext(unsigned int id, const char * text, int x, int y, double size, unsigned int wrap) {
+void muffin::graphics::drawtext(unsigned int id, const char * text, int x, int y, double size, int cw, int ch, unsigned int wrap) {
     // Draws a image on the screen
     SDL_Color color;
     SDL_GetRenderDrawColor(runtime::renderer, &color.r, &color.g, &color.b, &color.a);
@@ -292,6 +361,9 @@ void muffin::graphics::drawtext(unsigned int id, const char * text, int x, int y
     SDL_QueryTexture(texture, NULL, NULL, &dst.w, &dst.h);
     dst.w *= size, dst.h *= size;
 
+    if (cw > 0) dst.x += (dst.w / 2) - (cw / 2);
+    if (ch > 0) dst.y += (dst.h / 2) - (ch / 2);
+
     SDL_RenderCopy(runtime::renderer, texture, NULL, &dst);
     SDL_DestroyTexture(texture);
 }
@@ -300,7 +372,7 @@ void muffin::graphics::drawcanvas(unsigned int id, int x, int y, int w, int h) {
     // Draws an image
     SDL_Rect dst = { x, y, w, h };
 
-    SDL_RenderCopy(runtime::renderer, runtime::textures[id], NULL, &dst);
+    SDL_RenderCopy(runtime::renderer, runtime::buffers[id - 1], NULL, &dst);
 }
 
 // Audio
@@ -348,6 +420,18 @@ void muffin::audio::resumemusic() {
     Mix_ResumeMusic();
 }
 
+void muffin::audio::stopaudio() {
+    Mix_HaltChannel(-1);
+}
+
+void muffin::audio::stopmusic() {
+    Mix_HaltMusic();
+}
+
+bool muffin::audio::playing() {
+    return Mix_PlayingMusic();
+}
+
 void muffin::audio::volumeaudio(unsigned char volume) {
     if (Mix_Volume(-1, ((volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume)) == -1) trace::error(Mix_GetError());
 }
@@ -364,6 +448,10 @@ void muffin::data::loaddata(unsigned char * data, unsigned int size) {
 }
 
 // System
+const char * muffin::system::platform() {
+    return SDL_GetPlatform();
+}
+
 const char * muffin::system::clipboard(const char * data) {
     const char * prev = SDL_GetClipboardText();
     if (prev == NULL) trace::error(SDL_GetError());
