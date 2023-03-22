@@ -24,7 +24,7 @@ Currently not, planning on porting it actually.
 See ["Compiling"](#Compiling).
 
 ## Dependencies
-* SDL2
+* SDL2 (plain SDL, SDL_image, SDL_ttf and SDL_mixer)
 * Doxygen (optional, only used for documentation)
 
 ## Compiling
