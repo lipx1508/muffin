@@ -17,7 +17,7 @@
 #define MUFFIN_MAKEVERSION(major, minor, patch) (major * 100 + minor * 10 + patch)
 
 #define MUFFIN_MAJOR   1
-#define MUFFIN_MINOR   4
+#define MUFFIN_MINOR   5
 #define MUFFIN_PATCH   0
 #define MUFFIN_VERSION MUFFIN_MAKEVERSION(MUFFIN_MAJOR, MUFFIN_MINOR, MUFFIN_PATCH)
 /*! @} */
@@ -279,6 +279,8 @@
 #define MUFFIN_BUTTON_LEFT              1
 #define MUFFIN_BUTTON_MIDDLE            2
 #define MUFFIN_BUTTON_RIGHT             3
+#define MUFFIN_BUTTON_X1                4
+#define MUFFIN_BUTTON_X2                5
 /*! @} */
 
 /*!
@@ -299,6 +301,19 @@
 /*! @} */
 
 /*!
+ * @defgroup MUFFIN_BLEND Blending mode macros
+ *
+ * @{
+ */
+#define MUFFIN_BLEND_NONE            0x00
+#define MUFFIN_BLEND_ALL             0x01
+#define MUFFIN_BLEND_ADD             0x02
+#define MUFFIN_BLEND_MOD             0x04
+#define MUFFIN_BLEND_MUL             0x08
+#define MUFFIN_BLEND_INVALID         0x7F
+/*! @} */
+
+/*!
  * @defgroup MUFFIN_QUALITY Rendering quality macros
  *
  * @{
@@ -311,7 +326,7 @@
 //! All the muffin API
 namespace muffin {
     //! Inits muffin backends
-    void init(const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, unsigned int flags = 0);
+    void init(const char * title = "muffin window", unsigned int w = 800, unsigned int h = 800, const char * icon = 0, unsigned int flags = 0);
     //! Polls and updates event handling
     bool poll();
     //! Updates the internal backend
@@ -341,14 +356,27 @@ namespace muffin {
 
         //! Gets mouse input
         bool mouse(unsigned int id);
+        //! Gets mouse input using events
+        bool mouseevent(unsigned int id);
         //! Gets mouse position x
         int mousex();
         //! Gets mouse position y
         int mousey();
+        //! Gets mouse wheel x
+        int mousewheelx();
+        //! Gets mouse wheel y
+        int mousewheely();
         //! Sets the mouse capture
         void mousecapture(bool capture);
         //! Sets the cursor visibility
         void mousevisibility(bool toggle);
+        
+        //! Sets the text input state
+        void textinput(bool toggle);
+        //! Gets the text input state
+        bool textinputactive();
+        //! Gets text input
+        const char * textinputtext();
     };
     
     //! Graphics (drawing shapes, loading images, etc)
@@ -364,10 +392,16 @@ namespace muffin {
         void setcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
         //! Sets the current drawing color to be used using HEX instead of pure RGBA
         void setcolorhex(unsigned long hex);
+        //! Sets an image color modifier
+        void setcolormod(unsigned int id, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+        //! Sets an image color modifier using HEX instead of pure RGBA
+        void setcolormodhex(unsigned int id, unsigned long hex);
+        //! Sets an image blending mode
+        void setblend(unsigned int id, unsigned char mode);
         //! Sets the render scale
         void setscale(unsigned int size);
         //! Sets the current rendering quality
-        void setquality(unsigned int quality);
+        void setquality(unsigned char quality);
         //! Sets the current drawing canvas, 0 or NULL is the default
         void setcanvas(unsigned int canvas);
         //! Clears the screen and the internal buffers
@@ -384,7 +418,7 @@ namespace muffin {
         //! Draws a image on the screen using the specified ID
         void drawimage(unsigned int id, int x, int y, int w, int h, bool flip = false, double rotation = 0, int sx = 0, int sy = 0, int sw = 0, int sh = 0);
         //! Draws a text on the screen using the specified font ID and current color
-        void drawtext(unsigned int id, const char * text, int x, int y, double size, unsigned int wrap = 0);
+        void drawtext(unsigned int id, const char * text, int x, int y, double size, int cw, int ch, unsigned int wrap = 0);
         //! Draws a canvas on the screen
         void drawcanvas(unsigned int id, int x, int y, int w, int h);
     };
@@ -411,6 +445,14 @@ namespace muffin {
         //! Resumes all musics
         void resumemusic();
 
+        //! Stops all audios
+        void stopaudio();
+        //! Stops all musics
+        void stopmusic();
+
+        //! Checks if there is anything playing
+        bool playing();
+
         //! Sets all the audios volume to the specfied value (max. 128, anything higher than this will be set down to 128 again)
         void volumeaudio(unsigned char volume);
         //! Sets all the musics volume to the specfied value (max. 128, anything higher than this will be set down to 128 again)
@@ -425,6 +467,9 @@ namespace muffin {
 
     //! System (more advanced, used for getting system information)
     namespace system {
+        //! Returns the platform name
+        const char * platform();
+
         //! Returns the current clipboard data and sets it to a new one
         const char * clipboard(const char * data);
 
